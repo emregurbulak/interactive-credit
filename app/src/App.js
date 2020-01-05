@@ -1,24 +1,45 @@
 import React, { Component } from 'react';
 import './App.css';
 import TextField from '@material-ui/core/TextField';
+import MaskedInput from "react-text-mask";
+import PropTypes from "prop-types";
+
+const regEx = /[0-9]/;
+function TextMaskCustom(props) {
+  const { inputRef, ...other } = props;
+
+  return (
+    <MaskedInput
+      {...other}
+      ref={ref => {
+        inputRef(ref ? ref.inputElement : null);
+      }}
+      mask={[...regEx]}
+    />
+  );
+}
+
+TextMaskCustom.propTypes = {
+  inputRef: PropTypes.func.isRequired
+};
 
 class App extends Component {
   
   constructor(props){
     super(props);
-    this.handleTextFieldChange = this.handleTextFieldChange.bind(this);
+    this.handleIdentityFieldChange = this.handleIdentityFieldChange.bind(this);
 
-    this.state = {textFieldValue: ''};
+    this.state = {numberIdentityValue: ''};
   }
 
-  handleTextFieldChange(e) {
+  handleIdentityFieldChange(e) {
         this.setState({
-            textFieldValue: e.target.value
+            numberIdentityValue: e.target.value
         });
   }
 
   showIdentityErrMsg(){
-    return (this.state.textFieldValue.length > 0 && this.state.textFieldValue.length != 11) ? "Kimlik numarası 11 karakterden oluşmalıdır." :  "" 
+    return (this.state.numberIdentityValue.length > 0 && this.state.numberIdentityValue.length != 11) ? "Kimlik numarası 11 karakterden oluşmalıdır." :  "" 
   }
 
   render(){
@@ -34,11 +55,12 @@ class App extends Component {
               label="Kimlik Numarası"
               type="number"
               InputLabelProps={{shrink: true}}
-              value={this.state.textFieldValue} 
-              onChange={this.handleTextFieldChange}
+              value={this.state.numberIdentityValue} 
+              onChange={this.handleIdentityFieldChange}
               variant="outlined"
               helperText={this.showIdentityErrMsg()}
               error={false}
+              inputComponent={TextMaskCustom}
             />
           </div>
           <div className="credit-inputs">
