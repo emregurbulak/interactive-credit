@@ -1,8 +1,10 @@
-import React, { Component } from 'react';
+import React, { useState} from 'react';
 import './App.css';
 import TextField from '@material-ui/core/TextField';
 import MaskedInput from "react-text-mask";
 import PropTypes from "prop-types";
+import Button from '@material-ui/core/Button';
+import SaveIcon from '@material-ui/icons/Save';
 
 const regEx = /[0-9]/;
 function TextMaskCustom(props) {
@@ -23,26 +25,31 @@ TextMaskCustom.propTypes = {
   inputRef: PropTypes.func.isRequired
 };
 
-class App extends Component {
-  
-  constructor(props){
-    super(props);
-    this.handleIdentityFieldChange = this.handleIdentityFieldChange.bind(this);
+export function App(props) {
 
-    this.state = {numberIdentityValue: ''};
+  const [numberIdentityValue, setNumberIdentityValue] = useState('')
+  const [customerFirstName, setCustomerFirstName] = useState('')
+  const [customerLastName, setCustomerLastName] = useState('')
+  const [mountlySalary, setMountlySalary] = useState('')
+  const [phoneNumber, setPhoneNumber] = useState('')
+
+  function isApproveButtonDisable(){
+    if(numberIdentityValue === '' || 
+       customerFirstName === '' ||
+       customerLastName === '' ||
+       mountlySalary === '' || 
+       phoneNumber === '' 
+      ){
+      return true
+    }else{
+      return false
+    }
   }
 
-  handleIdentityFieldChange(e) {
-        this.setState({
-            numberIdentityValue: e.target.value
-        });
+  function showIdentityErrMsg(){
+    return (numberIdentityValue.length > 0 && numberIdentityValue.length !== 11) ? "Kimlik numarası 11 karakterden oluşmalıdır." :  "" 
   }
 
-  showIdentityErrMsg(){
-    return (this.state.numberIdentityValue.length > 0 && this.state.numberIdentityValue.length != 11) ? "Kimlik numarası 11 karakterden oluşmalıdır." :  "" 
-  }
-
-  render(){
     return (
       <div className="app-container">
         <div className="dsc-title">
@@ -55,18 +62,21 @@ class App extends Component {
               label="Kimlik Numarası"
               type="number"
               InputLabelProps={{shrink: true}}
-              value={this.state.numberIdentityValue} 
-              onChange={this.handleIdentityFieldChange}
+              value={numberIdentityValue} 
+              onChange={(e) => setNumberIdentityValue(e.target.value)}
               variant="outlined"
-              helperText={this.showIdentityErrMsg()}
+              helperText={showIdentityErrMsg()}
               error={false}
               inputComponent={TextMaskCustom}
             />
           </div>
           <div className="credit-inputs">
             <TextField 
-              id="outlined-basic" 
+              id="outlined-basic"
+              name="customerFirstName" 
               label="Adınız" 
+              value={customerFirstName} 
+              onChange={(e) => setCustomerFirstName(e.target.value)}
               variant="outlined" 
             />
           </div>
@@ -74,13 +84,44 @@ class App extends Component {
             <TextField 
               id="outlined-basic" 
               label="Soyadınız" 
+              name="customerLastName" 
+              value={customerLastName} 
+              onChange={(e) => setCustomerLastName(e.target.value)}
               variant="outlined" 
             />
+          </div>
+          <div className="credit-inputs">
+            <TextField 
+              id="outlined-basic" 
+              label="Aylık Geliriniz"
+              name="mountlySalary" 
+              value={mountlySalary} 
+              onChange={(e) => setMountlySalary(e.target.value)}
+              variant="outlined" 
+            />
+          </div>
+          <div className="credit-inputs">
+            <TextField 
+              id="outlined-basic" 
+              label="Telefon Bilginiz" 
+              name="phoneNumber" 
+              value={phoneNumber} 
+              onChange={(e) => setPhoneNumber(e.target.value)}
+              variant="outlined" 
+            />
+          </div>
+          <div className="send-button">
+            <Button
+              variant="contained"
+              color="primary"
+              startIcon={<SaveIcon />}
+              disabled={isApproveButtonDisable()}
+            >
+              Başvur
+            </Button>
           </div>
         </div>
       </div>
     );
-  }
 }
 
-export default App;
