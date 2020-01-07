@@ -6,8 +6,7 @@ import PropTypes from "prop-types";
 import Button from '@material-ui/core/Button';
 import SaveIcon from '@material-ui/icons/Save';
 
-const regEx = /[0-9]/;
-function TextMaskCustom(props) {
+function TextMaskCustomPhoneNumber(props) {
   const { inputRef, ...other } = props;
 
   return (
@@ -16,13 +15,14 @@ function TextMaskCustom(props) {
       ref={ref => {
         inputRef(ref ? ref.inputElement : null);
       }}
-      mask={[...regEx]}
+      mask={['(',/\d/, /\d/, /\d/, ')', ' ', /\d/, /\d/, /\d/, '-', /\d/, /\d/, /\d/, /\d/]}
+      showMask
     />
   );
 }
 
-TextMaskCustom.propTypes = {
-  inputRef: PropTypes.func.isRequired
+TextMaskCustomPhoneNumber.propTypes = {
+  inputRef: PropTypes.func.isRequired,
 };
 
 export function App(props) {
@@ -30,14 +30,14 @@ export function App(props) {
   const [numberIdentityValue, setNumberIdentityValue] = useState('')
   const [customerFirstName, setCustomerFirstName] = useState('')
   const [customerLastName, setCustomerLastName] = useState('')
-  const [mountlySalary, setMountlySalary] = useState('')
+  const [mounthlySalary, setMounthlySalary] = useState('')
   const [phoneNumber, setPhoneNumber] = useState('')
 
   function isApproveButtonDisable(){
     if(numberIdentityValue === '' || 
        customerFirstName === '' ||
        customerLastName === '' ||
-       mountlySalary === '' || 
+       mounthlySalary === '' || 
        phoneNumber === '' 
       ){
       return true
@@ -47,7 +47,7 @@ export function App(props) {
   }
 
   function showIdentityErrMsg(){
-    return (numberIdentityValue.length > 0 && numberIdentityValue.length !== 11) ? "Kimlik numarası 11 karakterden oluşmalıdır." :  "" 
+    return (numberIdentityValue.length > 0 && numberIdentityValue.length !== 11) ? "Kimlik numarası 11 karakter olmalıdır" :  "" 
   }
 
     return (
@@ -60,14 +60,13 @@ export function App(props) {
             <TextField
               id="outlined-number"
               label="Kimlik Numarası"
-              type="number"
               InputLabelProps={{shrink: true}}
+              type={"number"}
               value={numberIdentityValue} 
               onChange={(e) => setNumberIdentityValue(e.target.value)}
               variant="outlined"
               helperText={showIdentityErrMsg()}
               error={false}
-              inputComponent={TextMaskCustom}
             />
           </div>
           <div className="credit-inputs">
@@ -94,9 +93,9 @@ export function App(props) {
             <TextField 
               id="outlined-basic" 
               label="Aylık Geliriniz"
-              name="mountlySalary" 
-              value={mountlySalary} 
-              onChange={(e) => setMountlySalary(e.target.value)}
+              name="mounthlySalary" 
+              value={mounthlySalary} 
+              onChange={(e) => setMounthlySalary(e.target.value)}
               variant="outlined" 
             />
           </div>
@@ -108,6 +107,9 @@ export function App(props) {
               value={phoneNumber} 
               onChange={(e) => setPhoneNumber(e.target.value)}
               variant="outlined" 
+              InputProps={{
+                inputComponent: TextMaskCustomPhoneNumber,
+              }}
             />
           </div>
           <div className="send-button">
@@ -124,4 +126,3 @@ export function App(props) {
       </div>
     );
 }
-
