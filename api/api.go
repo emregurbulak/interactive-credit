@@ -39,32 +39,6 @@ func main() {
 	http.ListenAndServe(":8080", router)
 }
 
-func showPostHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	setCors(w)
-	var post database.Post
-	database.DB.Where("ID = ?", ps.ByName("postId")).First(&post)
-	res, err := json.Marshal(post)
-	if err != nil {
-		http.Error(w, err.Error(), 500)
-		return
-	}
-
-	w.Write(res)
-}
-
-func indexPostHandler(w http.ResponseWriter, identity string, _ httprouter.Params) (CustomerScore, error) {
-	customerScoreTableData := CustomerScore{}
-	setCors(w)
-	var posts []database.Post
-	database.DB.Where("Identity = ?", identity).First(&customerScoreTableData)
-
-	res, err := json.Marshal(customerScoreTableData)
-	if err != nil {
-		return nil, err
-	}
-	return res, nil
-}
-
 func customerApproveHandler() {
 
 }
