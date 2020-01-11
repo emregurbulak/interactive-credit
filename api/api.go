@@ -4,22 +4,25 @@ import (
 	"database"
 	"encoding/json"
 	"fmt"
-	"github.com/julienschmidt/httprouter"
 	"log"
 	"net/http"
 	"os"
+	"strconv"
+	"github.com/julienschmidt/httprouter"
 )
-
+const CREDIT_LOWER_LIMIT = 500;
+const CREDIT_SCORE_STANDART_LIMIT= 1000;
+const CREDIT_LIMIT_SCORE = 4;
 func main() {
 	defer database.DB.Close()
 
 	// add router and routes
 	router := httprouter.New()
 	router.GET("/", indexHandler)
-	router.GET("/creditApprovement", customerApproveHandler)
+	router.POST("/creditApprovement", customerApproveHandler)
 	router.OPTIONS("/*any", corsHandler)
 
-	// add database
+	// database oluştur
 	_, err := database.Init()
 	if err != nil {
 		log.Println("connection to DB failed, aborting...")
@@ -39,13 +42,51 @@ func main() {
 	http.ListenAndServe(":8080", router)
 }
 
-func customerApproveHandler() {
-
-}
-
 func indexHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	setCors(w)
 	fmt.Fprintf(w, "This is the RESTful api") //api kontrol ediliyor
+}
+
+
+func customerApproveHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	setCors(w)
+	responseBody := ApprovementResponse{};
+
+	decoder := json.NewDecoder(r.Body)
+	var body ApproveServiceRequestBody{}
+	if err := decoder.Decode(&body); err != nil {
+		http.Error(w, err.Error(), 400)
+		return
+	}
+	respScore := CustomerScore{}
+	identity := strconv.FormatInt(body.Identity, 10)
+	respScore = getCustomerScore(identity)
+	
+	if(respScore.CreditScore < CREDIT_SCORE_LOWER_LIMIT){
+		responseBody.ApprovementStatus = false;
+		responseBody.AssignedCreditAmount= 0; //bu alan omitempty de geçilebilir
+	}
+
+	if(respScore.CreditScore > CREDIT_SCORE_LOWER_LIMIT && 
+	   respScore.CreditScore < CREDIT_SCORE_STANDART_LIMIT &&
+	   body.Salary < 5000 ){
+		responseBody.ApprovementStatus = true;
+		responseBody.AssignedCreditAmount= 10000;
+	}
+
+	if(respScore.CreditScore >= CREDIT_SCORE_STANDART_LIMIT){
+		 responseBody.ApprovementStatus = true;
+		 responseBody.AssignedCreditAmount= CREDIT_LIMIT_SCORE * body.Salary;
+	 }
+
+	w.Write(responseBody)
+}
+
+func getCustomerScore(identity string) (customerScoreTableData CustomerScore){
+	customerScoreTableData := CustomerScore{}
+	database.DB.Where("Identity = ?", identity).First(&customerScoreTableData)
+	
+	return customerScoreTableData
 }
 
 // tanımsız url lerde
@@ -53,21 +94,9 @@ func corsHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	setCors(w)
 }
 
-func getCustomerScore(w http.ResponseWriter, identity string, _ httprouter.Params) (CustomerScore, error) {
-	customerScoreTableData := CustomerScore{}
-	setCors(w)
-	var posts []database.Post
-	database.DB.Where("Identity = ?", identity).First(&customerScoreTableData)
-
-	res, err := json.Marshal(customerScoreTableData)
-	if err != nil {
-		return nil, err
-	}
-	return res, nil
-}
 
 // util
-func getFrontendUrl() string {
+func getFrontendURL() string {
 	if os.Getenv("APP_ENV") == "production" {
 		return "http://localhost:3000" // prod ortamda url ekleyebilirsin
 	} else {
@@ -76,8 +105,8 @@ func getFrontendUrl() string {
 }
 
 func setCors(w http.ResponseWriter) {
-	frontendUrl := getFrontendUrl()
-	w.Header().Set("Access-Control-Allow-Origin", frontendUrl)
+	frontendURL := getFrontendURL()
+	w.Header().Set("Access-Control-Allow-Origin", frontendURL)
 	w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS, POST, DELETE")
 	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
 }
@@ -85,4 +114,17 @@ func setCors(w http.ResponseWriter) {
 type CustomerScore struct {
 	Identity    int64 `json:"identity"`
 	CreditScore int64 `json:"creditScore"`
+}
+
+type ApproveServiceRequestBody struct {
+	Identity    int64 	`json:"identity"`
+	FirstName   string 	`json:"firstName"`
+	LastName  	string 	`json:"lastName"`
+	Salary   	float64 `json:"salary"`
+	Number    	int64 	`json:"number"`
+}
+
+type ApprovementResponse struct {
+	ApprovementStatus bool `json:"approvementStatus"`
+	AssignedCreditAmount float64 `json:"assignedCreditAmount"`
 }
