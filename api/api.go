@@ -31,7 +31,7 @@ func main() {
 
 	log.Println("connected to DB")
 
-	// print env
+	// ekran modu log kaydı kontrolü
 	env := os.Getenv("APP_ENV")
 	if env == "production" {
 		log.Println("Running api server in production mode")
@@ -59,6 +59,7 @@ func customerApproveHandler(w http.ResponseWriter, r *http.Request, _ httprouter
 		return
 	}
 	respScore := CustomerScore{}
+
 	identity := strconv.FormatInt(body.Identity, 10)
 	respScore = getCustomerScore(identity)
 	
@@ -78,6 +79,9 @@ func customerApproveHandler(w http.ResponseWriter, r *http.Request, _ httprouter
 		 responseBody.ApprovementStatus = true;
 		 responseBody.AssignedCreditAmount= CREDIT_LIMIT_SCORE * body.Salary;
 	 }
+
+	//Tüm işlemler başarılı devam ettiğinde ilgili kaydı at
+	database.DB.Create(&body);
 
 	w.Write(responseBody)
 }
