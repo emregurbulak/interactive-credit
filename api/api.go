@@ -1,18 +1,21 @@
 package main
 
 import (
+	"bytes"
 	"database"
 	"encoding/json"
 	"fmt"
+	"github.com/julienschmidt/httprouter"
 	"log"
 	"net/http"
 	"os"
 	"strconv"
-	"github.com/julienschmidt/httprouter"
 )
-const CREDIT_LOWER_LIMIT = 500;
-const CREDIT_SCORE_STANDART_LIMIT= 1000;
-const CREDIT_LIMIT_SCORE = 4;
+
+const CREDIT_SCORE_LOWER_LIMIT = 500
+const CREDIT_SCORE_STANDART_LIMIT = 1000
+const CREDIT_LIMIT_SCORE = 4
+
 func main() {
 	defer database.DB.Close()
 
@@ -47,14 +50,14 @@ func indexHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	fmt.Fprintf(w, "This is the RESTful api") //api kontrol ediliyor
 }
 
-
 func customerApproveHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	setCors(w)
-	responseBody := ApprovementResponse{};
+	responseBody := ApprovementResponse{}
 
 	decoder := json.NewDecoder(r.Body)
-	var body ApproveServiceRequestBody{}
-	if err := decoder.Decode(&body); err != nil {
+	body := ApproveServiceRequestBody{}
+	err := decoder.Decode(&body)
+	if err != nil {
 		http.Error(w, err.Error(), 400)
 		return
 	}
@@ -62,42 +65,44 @@ func customerApproveHandler(w http.ResponseWriter, r *http.Request, _ httprouter
 
 	identity := strconv.FormatInt(body.Identity, 10)
 	respScore = getCustomerScore(identity)
-	
-	if(respScore.CreditScore < CREDIT_SCORE_LOWER_LIMIT){
-		responseBody.ApprovementStatus = false;
-		responseBody.AssignedCreditAmount= 0; //bu alan omitempty de geçilebilir
+
+	if respScore.CreditScore < CREDIT_SCORE_LOWER_LIMIT {
+		responseBody.ApprovementStatus = false
+		responseBody.AssignedCreditAmount = 0 //bu alan omitempty de geçilebilir
 	}
 
-	if(respScore.CreditScore > CREDIT_SCORE_LOWER_LIMIT && 
-	   respScore.CreditScore < CREDIT_SCORE_STANDART_LIMIT &&
-	   body.Salary < 5000 ){
-		responseBody.ApprovementStatus = true;
-		responseBody.AssignedCreditAmount= 10000;
+	if respScore.CreditScore > CREDIT_SCORE_LOWER_LIMIT &&
+		respScore.CreditScore < CREDIT_SCORE_STANDART_LIMIT &&
+		body.Salary < 5000 {
+		responseBody.ApprovementStatus = true
+		responseBody.AssignedCreditAmount = 10000
 	}
 
-	if(respScore.CreditScore >= CREDIT_SCORE_STANDART_LIMIT){
-		 responseBody.ApprovementStatus = true;
-		 responseBody.AssignedCreditAmount= CREDIT_LIMIT_SCORE * body.Salary;
-	 }
+	if respScore.CreditScore >= CREDIT_SCORE_STANDART_LIMIT {
+		responseBody.ApprovementStatus = true
+		responseBody.AssignedCreditAmount = CREDIT_LIMIT_SCORE * body.Salary
+	}
 
 	//Tüm işlemler başarılı devam ettiğinde ilgili kaydı at
-	database.DB.Create(&body);
+	database.DB.Create(&body)
 
-	w.Write(responseBody)
+	resBodyBytes := new(bytes.Buffer)
+	json.NewEncoder(resBodyBytes).Encode(responseBody)
+
+	w.Write(resBodyBytes.Bytes())
 }
 
-func getCustomerScore(identity string) (customerScoreTableData CustomerScore){
-	customerScoreTableData := CustomerScore{}
-	database.DB.Where("Identity = ?", identity).First(&customerScoreTableData)
-	
-	return customerScoreTableData
+func getCustomerScore(identity string) (customerScoreTableData CustomerScore) {
+	scoreTableData := CustomerScore{}
+	database.DB.Where("Identity = ?", identity).First(&scoreTableData)
+
+	return scoreTableData
 }
 
 // tanımsız url lerde
 func corsHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	setCors(w)
 }
-
 
 // util
 func getFrontendURL() string {
@@ -121,14 +126,14 @@ type CustomerScore struct {
 }
 
 type ApproveServiceRequestBody struct {
-	Identity    int64 	`json:"identity"`
-	FirstName   string 	`json:"firstName"`
-	LastName  	string 	`json:"lastName"`
-	Salary   	float64 `json:"salary"`
-	Number    	int64 	`json:"number"`
+	Identity  int64   `json:"identity"`
+	FirstName string  `json:"firstName"`
+	LastName  string  `json:"lastName"`
+	Salary    float64 `json:"salary"`
+	Number    int64   `json:"number"`
 }
 
 type ApprovementResponse struct {
-	ApprovementStatus bool `json:"approvementStatus"`
+	ApprovementStatus    bool    `json:"approvementStatus"`
 	AssignedCreditAmount float64 `json:"assignedCreditAmount"`
 }
